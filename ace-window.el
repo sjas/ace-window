@@ -140,6 +140,15 @@ Use M-0 `ace-window' to toggle this value."
            (ace-jump-done)
            (error "[AceJump] Internal error: tree node type is invalid")))))
 
+(defun aw--repeatable (alist)
+  (lexical-let ((keymap (make-sparse-keymap))
+                (func (cdar alist)))
+    (mapc (lambda (x) (define-key keymap (car x) (cdr x))) alist)
+    (lambda (arg)
+      (interactive "p")
+      (funcall func arg)
+      (set-transient-map keymap t))))
+
 (defun aw--doit (mode-line)
   "Select a window and eventually call `aw--current-op' for it.
 Set mode line to MODE-LINE during the selection process."
@@ -224,7 +233,27 @@ Set mode line to MODE-LINE during the selection process."
          ;; override the local key map
          (let ((map (make-keymap)))
            (dolist (key-code aw-keys)
-             (define-key map (make-string 1 key-code) 'aw--callback))
+             (define-key map (make-string 1 key-code) 'aw--callback)
+             (define-key map "h" (aw--repeatable
+                                     '(("h" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-left)))
+                                       ("j" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-down)))
+                                       ("k" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-up)))
+                                       ("l" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-right))))))
+             (define-key map "j" (aw--repeatable
+                                     '(("j" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-down)))
+                                       ("h" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-left)))
+                                       ("k" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-up)))
+                                       ("l" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-right))))))
+             (define-key map "k" (aw--repeatable
+                                     '(("k" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-up)))
+                                       ("h" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-left)))
+                                       ("j" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-down)))
+                                       ("l" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-right))))))
+             (define-key map "l" (aw--repeatable
+                                     '(("l" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-right)))
+                                       ("h" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-left)))
+                                       ("j" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-down)))
+                                       ("k" . (lambda (arg) (interactive "p") (when ace-jump-mode (ace-jump-done)) (windmove-up)))))))
            (define-key map [t] 'ace-jump-done)
            (if (fboundp 'set-transient-map)
                (set-transient-map map)
